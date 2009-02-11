@@ -22,7 +22,10 @@ require 'uri'
 # links will only be allowed if specified using http(s) and ftp(s)
 # schemes. If special link handling is needed, such as inter-wiki or
 # hierachical local links, you must inherit Creole::CreoleParser and
-# override make_link.
+# override make_local_link.
+#
+# You can customize the created anchor/image markup by overriding
+# make_*_anchor/make_image.
 
 module Creole
   
@@ -52,7 +55,7 @@ module Creole
   # each thread that needs to convert Creole to HTML.
   #
   # Inherit this to provide custom handling of links. The overrideable
-  # methods are: make_link
+  # methods are: make_local_link
   class CreoleParser
     
     # Create a new CreoleParser instance.
@@ -127,6 +130,22 @@ module Creole
       end
     end
 
+    # Create anchor markup for direct links. This
+    # method can be overridden to generate custom
+    # markup, for example to add html additional attributes.
+    private
+    def make_direct_anchor(uri, text)
+      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
+    end
+
+    # Create anchor markup for explicit links. This
+    # method can be overridden to generate custom
+    # markup, for example to add html additional attributes.
+    private
+    def make_explicit_anchor(uri, text)
+      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
+    end
+
     # Translate an explicit local link to a desired URL that is
     # properly URL-escaped. The default behaviour is to convert local
     # links directly, escaping any characters that have special
@@ -134,8 +153,8 @@ module Creole
     #
     # Examples:
     #
-    #   make_link("LocalLink") #=> "LocalLink"
-    #   make_link("/Foo/Bar") #=> "%2FFoo%2FBar"
+    #   make_local_link("LocalLink") #=> "LocalLink"
+    #   make_local_link("/Foo/Bar") #=> "%2FFoo%2FBar"
     #
     # Must ensure that the result is properly URL-escaped. The caller
     # will handle HTML escaping as necessary. HTML links will not be
@@ -143,10 +162,10 @@ module Creole
     #
     # Example custom behaviour:
     #
-    #   make_link("LocalLink") #=> "/LocalLink"
-    #   make_link("Wikipedia:Bread") #=> "http://en.wikipedia.org/wiki/Bread"
+    #   make_local_link("LocalLink") #=> "/LocalLink"
+    #   make_local_link("Wikipedia:Bread") #=> "http://en.wikipedia.org/wiki/Bread"
     private
-    def make_link(link) #:doc:
+    def make_local_link(link) #:doc:
       escape_url(link)
     end
 
@@ -183,6 +202,19 @@ module Creole
       return url
     end
 
+    # Create image markup.  This
+    # method can be overridden to generate custom
+    # markup, for example to add html additional attributes or
+    # to put divs around the imgs.
+    private
+    def make_image(uri, alt)
+      if alt
+        '<img src="' << escape_html(uri) << '" alt="' << escape_html(alt) << '"/>'
+      else
+        '<img src="' << escape_html(uri) << '"/>'
+      end      
+    end
+
     private
     def make_explicit_link(link)
       begin
@@ -192,7 +224,7 @@ module Creole
         end
       rescue URI::InvalidURIError
       end
-      return make_link(link)
+      return make_local_link(link)
     end
 
     def parse_inline(str)
@@ -205,7 +237,7 @@ module Creole
             @out << escape_html($2)
           else
             if uri = make_direct_link($2)
-              @out << '<a href="' << escape_html(uri) << '">' << escape_html($2) << '</a>'
+              @out << make_direct_anchor(uri, $2)
             else
               @out << escape_html($&)
             end
@@ -213,7 +245,7 @@ module Creole
         when /\A\[\[\s*([^|]*?)\s*(\|\s*(.*?))?\s*\]\]/m
           link = $1
           if uri = make_explicit_link(link)
-            @out << '<a href="' << escape_html(uri) << '">' << escape_html($3 || link) << '</a>'
+            @out << make_explicit_anchor(uri, $3 || link)
           else
             @out << escape_html($&)
           end
@@ -223,11 +255,7 @@ module Creole
           @out << '<tt>' << escape_html($1) << '</tt>'
         when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/ # (|\s*(.*?)\s*)?*\}\}/
           if uri = make_image_link($1)
-            if $3
-              @out << '<img src="' << escape_html(uri) << '" alt="' << escape_html($3) << '"/>'
-            else
-              @out << '<img src="' << escape_html(uri) << '"/>'
-            end
+            @out << make_image(uri, $3)
           else
             @out << escape_html($&)
           end
