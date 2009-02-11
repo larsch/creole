@@ -60,7 +60,6 @@ module Creole
       @base = nil
       @allowed_schemes = [ 'http', 'https', 'ftp', 'ftps' ]
       @uri_scheme_re = @allowed_schemes.join('|')
-      @link_re = /\b[A-Z][a-z]*([A-Z][a-z]*)+\b/
     end
 
     # Parse and convert the argument in Creole text to HTML and return
@@ -215,12 +214,6 @@ module Creole
           link = $1
           if uri = make_explicit_link(link)
             @out << '<a href="' << escape_html(uri) << '">' << escape_html($3 || link) << '</a>'
-          else
-            @out << escape_html($&)
-          end
-        when @link_re
-          if uri = make_explicit_link($&)
-            @out << '<a href="' << escape_html(uri) << '">' << escape_html($&) << '</a>'
           else
             @out << escape_html($&)
           end
