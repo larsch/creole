@@ -29,7 +29,7 @@ require 'uri'
 
 module Creole
   
-  VERSION = "0.1"
+  VERSION = "0.2"
 
   # CreoleParseError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
