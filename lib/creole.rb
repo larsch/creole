@@ -28,8 +28,8 @@ require 'uri'
 # make_*_anchor/make_image.
 
 module Creole
-  
-  VERSION = "0.2"
+
+  VERSION = '0.3'
 
   # CreoleParseError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
@@ -57,7 +57,7 @@ module Creole
   # Inherit this to provide custom handling of links. The overrideable
   # methods are: make_local_link
   class CreoleParser
-    
+
     # Create a new CreoleParser instance.
     def initialize
       @base = nil
@@ -82,7 +82,7 @@ module Creole
       parse_block(string)
       return @out
     end
-    
+
     # Escape any characters with special meaning in HTML using HTML
     # entities.
     private
@@ -212,7 +212,7 @@ module Creole
         '<img src="' << escape_html(uri) << '" alt="' << escape_html(alt) << '"/>'
       else
         '<img src="' << escape_html(uri) << '"/>'
-      end      
+      end
     end
 
     private
@@ -232,7 +232,7 @@ module Creole
         case str
         when /\A\r?\n/
           return
-        when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'])?(\s|$))/
+        when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'\)])?(\s|$))/
           if $1
             @out << escape_html($2)
           else
@@ -249,11 +249,9 @@ module Creole
           else
             @out << escape_html($&)
           end
-        when /\A[^\/\\*\s{}~]+/
-          @out << escape_html($&)
         when /\A\{\{\{(.*)\}\}\}/
           @out << '<tt>' << escape_html($1) << '</tt>'
-        when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/ # (|\s*(.*?)\s*)?*\}\}/
+        when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
           if uri = make_image_link($1)
             @out << make_image(uri, $3)
           else
@@ -274,7 +272,6 @@ module Creole
         else
           raise CreoleParseError, "Parse error at #{str[0,30].inspect}"
         end
-        # p [$&, $']
         str = $'
       end
     end
@@ -299,7 +296,7 @@ module Creole
     end
 
     def ulol(x); x=='ul'||x=='ol'; end
-    
+
     def parse_block(str)
       until str.empty?
         case str
@@ -365,7 +362,7 @@ module Creole
       end_paragraph
       return @out
     end
-    
+
   end # class CreoleParser
-  
+
 end # module Creole

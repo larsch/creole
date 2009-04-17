@@ -9,11 +9,11 @@ require 'cgi'
 # should contain minimal amount of whitespace (only the absolutely
 # required).
 
-module TestCases 
+module TestCases
   def escape_html(html)
     CGI::escapeHTML(html)
   end
-  
+
   def test_bold
     # Creole1.0: Bold can be used inside paragraphs
     tc "<p>This <strong>is</strong> bold</p>", "This **is** bold"
@@ -96,7 +96,7 @@ module TestCases
     # Creole1.0: By example
     tc "<p><em>This is <strong>also</strong> good.</em></p>", "//This is **also** good.//"
   end
-  
+
   def test_headings
     # Creole1.0: Only three differed sized levels of heading are required.
     tc "<h1>Heading 1</h1>", "= Heading 1 ="
@@ -117,11 +117,11 @@ module TestCases
     tc "<h1>Heading 1</h1>", "=Heading 1 ==="
     tc "<h2>Heading 2</h2>", "== Heading 2 ="
     tc "<h3>Heading 3</h3>", " === Heading 3 ==========="
-    
+
     # Creole1.0: Whitespace is allowed before the left-side equal signs.
     tc "<h1>Heading 1</h1>", " \t= Heading 1 ="
     tc "<h2>Heading 2</h2>", " \t== Heading 2 =="
-    
+
     # Creole1.0: Only white-space characters are permitted after the closing equal signs.
     tc "<h1>Heading 1</h1>", " = Heading 1 =   "
     tc "<h2>Heading 2</h2>", " == Heading 2 ==  \t  "
@@ -132,27 +132,27 @@ module TestCases
     unless $strict
       tc "<h2>Heading 2 == foo</h2>", " == Heading 2 == foo"
     end
-    
+
     # Creole1.0-Implied: Line must start with equal sign
     tc "<p>foo = Heading 1 =</p>", "foo = Heading 1 ="
   end
-  
+
   def test_links
     # Creole1.0: Links
     tc "<p><a href=\"link\">link</a></p>", "[[link]]"
 
     # Creole1.0: Links can appear in paragraphs (i.e. inline item)
     tc "<p>Hello, <a href=\"world\">world</a></p>", "Hello, [[world]]"
-    
+
     # Creole1.0: Named links
     tc "<p><a href=\"MyBigPage\">Go to my page</a></p>", "[[MyBigPage|Go to my page]]"
-    
+
     # Creole1.0: URLs
     tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a></p>", "[[http://www.wikicreole.org/]]"
-    
+
     # Creole1.0: Free-standing URL's should be turned into links
     tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a></p>", "http://www.wikicreole.org/"
-    
+
     # Creole1.0: Single punctuation characters at the end of URLs
     # should not be considered a part of the URL.
     [',','.','?','!',':',';','\'','"'].each { |punct|
@@ -167,7 +167,7 @@ module TestCases
       # Parsing markup within a link is optional
       tc "<p><a href=\"Weird+Stuff\">**Weird** //Stuff//</a></p>", "[[Weird Stuff|**Weird** //Stuff//]]"
     end
-    
+
     # Inside bold
     tc "<p><strong><a href=\"link\">link</a></strong></p>", "**[[link]]**"
 
@@ -177,19 +177,19 @@ module TestCases
     tc("<p><a href=\"http://dot.com/\">dot.com</a></p>", "[[  http://dot.com/ \t| \t dot.com ]]")
     tc("<p><a href=\"http://dot.com/\">dot.com</a></p>", "[[  http://dot.com/  |  dot.com ]]")
   end
-  
+
   def test_paragraph
     # Creole1.0: One or more blank lines end paragraphs.
     tc "<p>This is my text.</p><p>This is more text.</p>", "This is\nmy text.\n\nThis is\nmore text."
     tc "<p>This is my text.</p><p>This is more text.</p>", "This is\nmy text.\n\n\nThis is\nmore text."
     tc "<p>This is my text.</p><p>This is more text.</p>", "This is\nmy text.\n\n\n\nThis is\nmore text."
-    
+
     # Creole1.0: A list end paragraphs too.
     tc "<p>Hello</p><ul><li>Item</li></ul>", "Hello\n* Item\n"
-    
+
     # Creole1.0: A table end paragraphs too.
     tc "<p>Hello</p><table><tr><td>Cell</td></tr></table>", "Hello\n|Cell|"
-    
+
     # Creole1.0: A nowiki end paragraphs too.
     tc "<p>Hello</p><pre>nowiki</pre>", "Hello\n{{{\nnowiki\n}}}\n"
 
@@ -198,9 +198,9 @@ module TestCases
       tc "<p>Hello</p><h1>Heading</h1>", "Hello\n= Heading =\n"
     end
   end
-  
+
   def test_linebreak
-    # Creole1.0: \\ (wiki-style) for line breaks. 
+    # Creole1.0: \\ (wiki-style) for line breaks.
     tc "<p>This is the first line,<br/>and this is the second.</p>", "This is the first line,\\\\and this is the second."
   end
 
@@ -225,7 +225,7 @@ module TestCases
 
     # Creole1.0: An item ends at a table
     tc("<ul><li>Item</li></ul><table><tr><td>Cell</td></tr></table>", "* Item\n|Cell|\n")
-    
+
     # Creole1.0: An item ends at a nowiki block
     tc("<ul><li>Item</li></ul><pre>Code</pre>", "* Item\n{{{\nCode\n}}}\n")
 
@@ -236,7 +236,7 @@ module TestCases
     # Creole1.0: An item can contain line breaks
     tc("<ul><li>The quick brown<br/>fox jumps over lazy dog.</li></ul>",
        "* The quick brown\\\\fox jumps over lazy dog.")
-    
+
     # Creole1.0: Nested
     tc "<ul><li>Item 1</li><ul><li>Item 2</li></ul><li>Item 3</li></ul>", "* Item 1\n **Item 2\n *\t\tItem 3\n"
 
@@ -251,7 +251,7 @@ module TestCases
     # Creole1.0: ** immediatly following a list element will be treated as a nested unordered element.
     tc("<ol><li>Hello, World!</li><ul><li>Not bold</li></ul></ol>",
        "#Hello,\nWorld!\n**Not bold\n")
-    
+
     # Creole1.0: [...] otherwise it will be treated as the beginning of bold text.
     tc("<ul><li>Hello, World!</li></ul><p><strong>Not bold</strong></p>",
        "*Hello,\nWorld!\n\n**Not bold\n")
@@ -278,7 +278,7 @@ module TestCases
 
     # Creole1.0: An item ends at a table
     tc("<ol><li>Item</li></ol><table><tr><td>Cell</td></tr></table>", "# Item\n|Cell|\n")
-    
+
     # Creole1.0: An item ends at a nowiki block
     tc("<ol><li>Item</li></ol><pre>Code</pre>", "# Item\n{{{\nCode\n}}}\n")
 
@@ -289,7 +289,7 @@ module TestCases
     # Creole1.0: An item can contain line breaks
     tc("<ol><li>The quick brown<br/>fox jumps over lazy dog.</li></ol>",
        "# The quick brown\\\\fox jumps over lazy dog.")
-    
+
     # Creole1.0: Nested
     tc "<ol><li>Item 1</li><ol><li>Item 2</li></ol><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
 
@@ -300,7 +300,7 @@ module TestCases
     # Creole1.0_Infered: The two-bullet rule only applies to **.
     tc("<ol><ol><li>Item</li></ol></ol>", "##Item")
   end
-  
+
   def test_ordered_lists2
     tc "<ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol>", "# Item 1\n #Item 2\n #\t\tItem 3\n"
     # Nested
@@ -312,22 +312,22 @@ module TestCases
   def test_ambiguity_mixed_lists
     # ol following ul
     tc("<ul><li>uitem</li></ul><ol><li>oitem</li></ol>", "*uitem\n#oitem\n")
-    
+
     # ul following ol
     tc("<ol><li>uitem</li></ol><ul><li>oitem</li></ul>", "#uitem\n*oitem\n")
-    
+
     # 2ol following ul
     tc("<ul><li>uitem</li><ol><li>oitem</li></ol></ul>", "*uitem\n##oitem\n")
-    
+
     # 2ul following ol
     tc("<ol><li>uitem</li><ul><li>oitem</li></ul></ol>", "#uitem\n**oitem\n")
-    
+
     # 3ol following 3ul
     tc("<ul><ul><ul><li>uitem</li></ul><ol><li>oitem</li></ol></ul></ul>", "***uitem\n###oitem\n")
-    
+
     # 2ul following 2ol
     tc("<ol><ol><li>uitem</li></ol><ul><li>oitem</li></ul></ol>", "##uitem\n**oitem\n")
-    
+
     # ol following 2ol
     tc("<ol><ol><li>oitem1</li></ol><li>oitem2</li></ol>", "##oitem1\n#oitem2\n")
     # ul following 2ol
@@ -346,6 +346,9 @@ module TestCases
     # Another test from Creole Wiki
     tc("<p>Formatted fruits, for example:<em>apples</em>, oranges, <strong>pears</strong> ...</p>",
        "Formatted fruits, for example://apples//, oranges, **pears** ...")
+
+    tc("<p>Blablabala (<a href=\"http://blub.de\">http://blub.de</a>)</p>",
+       "Blablabala (http://blub.de)")
   end
 
   def test_ambiguity_bold_and_lists
@@ -359,14 +362,14 @@ module TestCases
 
     # ... works inline
     tc "<p>Hello <tt>world</tt>.</p>", "Hello {{{world}}}."
-    
+
     # Creole1.0: No wiki markup is interpreted inbetween
     tc "<pre>**Hello**</pre>", "{{{\n**Hello**\n}}}\n"
 
     # Creole1.0: Leading whitespaces are not permitted
     tc("<p> {{{ Hello }}}</p>", " {{{\nHello\n}}}")
     tc("<p>{{{ Hello }}}</p>", "{{{\nHello\n }}}")
-    
+
     # Assumed: Should preserve whitespace
     tc("<pre> \t Hello, \t \n \t World \t </pre>",
        "{{{\n \t Hello, \t \n \t World \t \n}}}\n")
@@ -401,7 +404,7 @@ module TestCases
     tc "<p>Hello ~ world</p>", "Hello ~\nworld\n"
     # Not escaping inside URLs (Creole1.0 not clear on this)
     tc "<p><a href=\"http://example.org/~user/\">http://example.org/~user/</a></p>", "http://example.org/~user/"
-    
+
     # Escaping links
     tc "<p>http://www.wikicreole.org/</p>", "~http://www.wikicreole.org/"
   end
@@ -516,7 +519,7 @@ module TestCases
     tc("<p>par</p><table><tr><td>table</td></tr></table>", "par\n|table|\n")
     tc("<p>par</p><table><tr><td>table</td></tr></table>", "par\n\n|table|\n")
   end
-  
+
   def test_following_unordered_list
     # heading
     tc("<ul><li>item</li></ul><h1>heading</h1>", "*item\n=heading=")
