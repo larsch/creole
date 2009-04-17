@@ -29,7 +29,7 @@ require 'uri'
 
 module Creole
 
-  VERSION = '0.3'
+  VERSION = '0.3.1'
 
   # CreoleParseError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
@@ -230,8 +230,6 @@ module Creole
     def parse_inline(str)
       until str.empty?
         case str
-        when /\A\r?\n/
-          return
         when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'\)])?(\s|$))/
           if $1
             @out << escape_html($2)
@@ -259,9 +257,11 @@ module Creole
           end
         when /\A~([^\s])/
           @out << escape_html($1)
-        when /\A[ \t]+/
+        when /\A\w+/
+	  @out << $&
+        when /\A\s+/
           @out << ' ' unless @out[-1,1] == ' '
-        when /\A\*\*/
+	when /\A\*\*/
           toggle_tag 'strong', $&
         when /\A\/\//
           toggle_tag 'em', $&
