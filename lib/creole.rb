@@ -29,7 +29,7 @@ require 'uri'
 
 module Creole
 
-  VERSION = '0.3.1'
+  VERSION = '0.3.2'
 
   # CreoleParseError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
@@ -278,7 +278,7 @@ module Creole
 
     def parse_table_row(str)
       @out << '<tr>'
-      str.scan(/\s*\|(=)?\s*(([^|~]|~.)*)(?=\||$)/) {
+      str.scan(/\s*\|(=)?\s*((\[\[.*?\]\]|\{\{.*?\}\}|[^|~]|~.)*)(?=\||$)/) do
         unless $2.empty? and $'.empty?
           @out << ($1 ? '<th>' : '<td>')
           parse_inline($2) if $2
@@ -287,7 +287,7 @@ module Creole
           end
           @out << ($1 ? '</th>' : '</td>')
         end
-      }
+      end
       @out << '</tr>'
     end
 

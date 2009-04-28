@@ -446,6 +446,8 @@ module TestCases
     tc "<table><tr><td>c1</td><td>c2|</td><td></td></tr></table>", "|c1|c2~|||"
     # Equal sign after pipe make a header
     tc "<table><tr><th>Header</th></tr></table>", "|=Header|"
+
+    tc "<table><tr><td>c1</td><td><a href=\"Link\">Link text</a></td><td><img src=\"Image\" alt=\"Image text\"/></td></tr></table>", "|c1|[[Link|Link text]]|{{Image|Image text}}|"
   end
 
   def test_following_table
