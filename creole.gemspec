@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ["Manifest.txt", "README.txt"]
   s.files = ["Manifest.txt", "README.txt", "Rakefile", "lib/creole.rb", "test/test_creole.rb", "test/testcases.rb"]
   s.has_rdoc = true
-  s.homepage = %q{http://creole.rubyforge.org/}
+  s.homepage = %q{http://github.com/minad/creole}
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{creole}
