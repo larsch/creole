@@ -29,7 +29,7 @@ require 'uri'
 
 module Creole
 
-  VERSION = '0.3.2'
+  VERSION = '0.3.3'
 
   # CreoleParseError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
@@ -98,35 +98,40 @@ module Creole
     end
 
     private
+
+    def start_tag(tag)
+      @stack.push(tag)
+      @out << '<' << tag << '>'
+    end
+
+    def end_tag
+      @out << '</' << @stack.pop << '>'
+    end
+
     def toggle_tag(tag, match)
       if @stack.include?(tag)
         if @stack.last == tag
-          @stack.pop
-          @out << '</' << tag << '>'
+          end_tag
         else
           @out << escape_html(match)
         end
       else
-        @stack.push(tag)
-        @out << '<' << tag << '>'
+        start_tag(tag)
       end
     end
 
     def end_paragraph
-      while tag = @stack.pop
-        @out << "</#{tag}>"
-      end
+      end_tag while !@stack.empty?
       @p = false
     end
 
     def start_paragraph
-      if not @p
-        end_paragraph
-        @out << '<p>'
-        @stack.push('p')
-        @p = true
+      if @p
+        @out << ' ' if @out[-1,1] != ' '
       else
-        @out << ' ' unless @out[-1,1] == ' '
+        end_paragraph
+        start_tag('p')
+        @p = true
       end
     end
 
@@ -219,9 +224,7 @@ module Creole
     def make_explicit_link(link)
       begin
         uri = URI.parse(link)
-        if uri.scheme and @allowed_schemes.include?(uri.scheme)
-          return uri.to_s
-        end
+        return uri.to_s if uri.scheme && @allowed_schemes.include?(uri.scheme)
       rescue URI::InvalidURIError
       end
       return make_local_link(link)
@@ -260,7 +263,7 @@ module Creole
         when /\A\w+/
 	  @out << $&
         when /\A\s+/
-          @out << ' ' unless @out[-1,1] == ' '
+          @out << ' ' if @out[-1,1] != ' '
 	when /\A\*\*/
           toggle_tag 'strong', $&
         when /\A\/\//
@@ -279,12 +282,10 @@ module Creole
     def parse_table_row(str)
       @out << '<tr>'
       str.scan(/\s*\|(=)?\s*((\[\[.*?\]\]|\{\{.*?\}\}|[^|~]|~.)*)(?=\||$)/) do
-        unless $2.empty? and $'.empty?
+        if !$2.empty? || !$'.empty?
           @out << ($1 ? '<th>' : '<td>')
           parse_inline($2) if $2
-          until @stack.last == 'table'
-            @out << '</' << @stack.pop << '>'
-          end
+          end_tag while @stack.last != 'table'
           @out << ($1 ? '</th>' : '</td>')
         end
       end
@@ -295,7 +296,7 @@ module Creole
       input.gsub(/^ (?=\}\}\})/, '')
     end
 
-    def ulol(x); x=='ul'||x=='ol'; end
+    def ulol?(x); x == 'ul' || x == 'ol'; end
 
     def parse_block(str)
       until str.empty?
@@ -312,10 +313,9 @@ module Creole
           level = $1.size
           @out << "<h#{level}>" << escape_html($2) << "</h#{level}>"
         when /\A[ \t]*\|.*$(\r?\n)?/
-          unless @stack.include?('table')
+          if !@stack.include?('table')
             end_paragraph
-            @stack.push('table')
-            @out << '<table>'
+            start_tag('table')
           end
           parse_table_row($&)
         when /\A\s*$(\r?\n)?/
@@ -323,28 +323,32 @@ module Creole
         when /\A(\s*([*#]+)\s*(.*?))$(\r?\n)?/
           line, bullet, item = $1, $2, $3
           tag = (bullet[0,1] == '*' ? 'ul' : 'ol')
-          listre = /\A[ou]l\z/
-          if bullet[0,1] == '#' or bullet.size != 2 or @stack.find { |x| x=='ol' || x == 'ul' }
-            ulcount = @stack.inject(0) { |a,b| a + (ulol(b) ? 1 : 0) }
-            while ulcount > bullet.size or not (@stack.empty? or ulol(@stack.last))
-              @out << '</' + @stack.last << '>'
-              ulcount -= 1 if ulol(@stack.pop)
+          if bullet[0,1] == '#' || bullet.size != 2 || @stack.find {|x| ulol?(x) }
+            count = @stack.select { |x| ulol?(x) }.size
+
+            while !@stack.empty? && count > bullet.size
+              count -= 1 if ulol?(@stack.last)
+              end_tag
             end
 
-            if ulcount == bullet.size and @stack.last != tag
-              @out << '</' << @stack.last << '>'
-              @stack.pop
-              ulcount -= 1
+            end_tag while !@stack.empty? && @stack.last != 'li'
+
+            if @stack.last == 'li' && count == bullet.size
+              end_tag
+              if @stack.last != tag
+                end_tag
+                count -= 1
+              end
             end
 
-            while ulcount < bullet.size
-              @out << '<' << tag << '>'
-              @stack.push tag
-              ulcount += 1
+            while count < bullet.size
+              start_tag tag
+              count += 1
+              start_tag 'li' if count < bullet.size
             end
+
             @p = true
-            @out << '<li>'
-            @stack.push('li')
+            start_tag('li')
             parse_inline(item)
           else
             start_paragraph

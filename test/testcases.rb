@@ -214,7 +214,7 @@ module TestCases
        "   *    Item 1\n*Item 2\n \t*\t\tItem 3\n")
 
     # Creole1.0: A space is required if if the list element starts with bold text.
-    tc("<ul><ul><ul><li>Item 1</li></ul></ul></ul>", "***Item 1")
+    tc("<ul><li><ul><li><ul><li>Item 1</li></ul></li></ul></li></ul>", "***Item 1")
     tc("<ul><li><strong>Item 1</strong></li></ul>", "* **Item 1")
 
     # Creole1.0: An item ends at blank line
@@ -238,18 +238,18 @@ module TestCases
        "* The quick brown\\\\fox jumps over lazy dog.")
 
     # Creole1.0: Nested
-    tc "<ul><li>Item 1</li><ul><li>Item 2</li></ul><li>Item 3</li></ul>", "* Item 1\n **Item 2\n *\t\tItem 3\n"
+    tc "<ul><li>Item 1<ul><li>Item 2</li></ul></li><li>Item 3</li></ul>", "* Item 1\n **Item 2\n *\t\tItem 3\n"
 
     # Creole1.0: Nested up to 5 levels
-    tc("<ul><li>Item 1</li><ul><li>Item 2</li><ul><li>Item 3</li><ul><li>Item 4</li><ul><li>Item 5</li></ul></ul></ul></ul></ul>",
+    tc("<ul><li>Item 1<ul><li>Item 2<ul><li>Item 3<ul><li>Item 4<ul><li>Item 5</li></ul></li></ul></li></ul></li></ul></li></ul>",
        "*Item 1\n**Item 2\n***Item 3\n****Item 4\n*****Item 5\n")
 
     # Creole1.0: ** immediatly following a list element will be treated as a nested unordered element.
-    tc("<ul><li>Hello, World!</li><ul><li>Not bold</li></ul></ul>",
+    tc("<ul><li>Hello, World!<ul><li>Not bold</li></ul></li></ul>",
        "*Hello,\nWorld!\n**Not bold\n")
 
     # Creole1.0: ** immediatly following a list element will be treated as a nested unordered element.
-    tc("<ol><li>Hello, World!</li><ul><li>Not bold</li></ul></ol>",
+    tc("<ol><li>Hello, World!<ul><li>Not bold</li></ul></li></ol>",
        "#Hello,\nWorld!\n**Not bold\n")
 
     # Creole1.0: [...] otherwise it will be treated as the beginning of bold text.
@@ -267,7 +267,7 @@ module TestCases
        "   #    Item 1\n#Item 2\n \t#\t\tItem 3\n")
 
     # Creole1.0: A space is required if if the list element starts with bold text.
-    tc("<ol><ol><ol><li>Item 1</li></ol></ol></ol>", "###Item 1")
+    tc("<ol><li><ol><li><ol><li>Item 1</li></ol></li></ol></li></ol>", "###Item 1")
     tc("<ol><li><strong>Item 1</strong></li></ol>", "# **Item 1")
 
     # Creole1.0: An item ends at blank line
@@ -291,20 +291,20 @@ module TestCases
        "# The quick brown\\\\fox jumps over lazy dog.")
 
     # Creole1.0: Nested
-    tc "<ol><li>Item 1</li><ol><li>Item 2</li></ol><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
+    tc "<ol><li>Item 1<ol><li>Item 2</li></ol></li><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
 
     # Creole1.0: Nested up to 5 levels
-    tc("<ol><li>Item 1</li><ol><li>Item 2</li><ol><li>Item 3</li><ol><li>Item 4</li><ol><li>Item 5</li></ol></ol></ol></ol></ol>",
+    tc("<ol><li>Item 1<ol><li>Item 2<ol><li>Item 3<ol><li>Item 4<ol><li>Item 5</li></ol></li></ol></li></ol></li></ol></li></ol>",
        "#Item 1\n##Item 2\n###Item 3\n####Item 4\n#####Item 5\n")
 
     # Creole1.0_Infered: The two-bullet rule only applies to **.
-    tc("<ol><ol><li>Item</li></ol></ol>", "##Item")
+    tc("<ol><li><ol><li>Item</li></ol></li></ol>", "##Item")
   end
 
   def test_ordered_lists2
     tc "<ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol>", "# Item 1\n #Item 2\n #\t\tItem 3\n"
     # Nested
-    tc "<ol><li>Item 1</li><ol><li>Item 2</li></ol><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
+    tc "<ol><li>Item 1<ol><li>Item 2</li></ol></li><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
     # Multiline
     tc "<ol><li>Item 1 on multiple lines</li></ol>", "# Item 1\non multiple lines"
   end
@@ -317,21 +317,21 @@ module TestCases
     tc("<ol><li>uitem</li></ol><ul><li>oitem</li></ul>", "#uitem\n*oitem\n")
 
     # 2ol following ul
-    tc("<ul><li>uitem</li><ol><li>oitem</li></ol></ul>", "*uitem\n##oitem\n")
+    tc("<ul><li>uitem<ol><li>oitem</li></ol></li></ul>", "*uitem\n##oitem\n")
 
     # 2ul following ol
-    tc("<ol><li>uitem</li><ul><li>oitem</li></ul></ol>", "#uitem\n**oitem\n")
+    tc("<ol><li>uitem<ul><li>oitem</li></ul></li></ol>", "#uitem\n**oitem\n")
 
     # 3ol following 3ul
-    tc("<ul><ul><ul><li>uitem</li></ul><ol><li>oitem</li></ol></ul></ul>", "***uitem\n###oitem\n")
+    tc("<ul><li><ul><li><ul><li>uitem</li></ul><ol><li>oitem</li></ol></li></ul></li></ul>", "***uitem\n###oitem\n")
 
     # 2ul following 2ol
-    tc("<ol><ol><li>uitem</li></ol><ul><li>oitem</li></ul></ol>", "##uitem\n**oitem\n")
+    tc("<ol><li><ol><li>uitem</li></ol><ul><li>oitem</li></ul></li></ol>", "##uitem\n**oitem\n")
 
     # ol following 2ol
-    tc("<ol><ol><li>oitem1</li></ol><li>oitem2</li></ol>", "##oitem1\n#oitem2\n")
+    tc("<ol><li><ol><li>oitem1</li></ol></li><li>oitem2</li></ol>", "##oitem1\n#oitem2\n")
     # ul following 2ol
-    tc("<ol><ol><li>oitem1</li></ol></ol><ul><li>oitem2</li></ul>", "##oitem1\n*oitem2\n")
+    tc("<ol><li><ol><li>oitem1</li></ol></li></ol><ul><li>oitem2</li></ul>", "##oitem1\n*oitem2\n")
   end
 
   def test_ambiguity_italics_and_url
