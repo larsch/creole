@@ -27,14 +27,22 @@ require 'uri'
 # You can customize the created anchor/image markup by overriding
 # make_*_anchor/make_image.
 
-module Creole
+# Main Creole parser class.  Call CreoleParser#parse to parse Creole
+# formatted text.
+#
+# This class is not reentrant. A separate instance is needed for
+# each thread that needs to convert Creole to HTML.
+#
+# Inherit this to provide custom handling of links. The overrideable
+# methods are: make_local_link
+class Creole
 
-  VERSION = '0.3.3'
+  VERSION = '0.3.4'
 
-  # CreoleParseError is raised when the Creole parser encounters
+  # CreoleError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
   # a bug in the parser.
-  class CreoleParseError < Exception; end
+  class CreoleError < Exception; end
 
   # Convert the argument in Creole format to HTML and return the
   # result. Example:
@@ -42,331 +50,309 @@ module Creole
   #    Creole.creolize("**Hello //World//**")
   #        #=> "<p><strong>Hello <em>World</em></strong></p>"
   #
-  # This is an alias for calling CreoleParser#parse:
-  #    CreoleParser.new.parse(creole)
+  # This is an alias for calling Creole#parse:
+  #    Creole.new.parse(creole)
   def self.creolize(creole)
-    CreoleParser.new.parse(creole)
+    new.parse(creole)
   end
 
-  # Main Creole parser class.  Call CreoleParser#parse to parse Creole
-  # formatted text.
+  # Create a new CreoleParser instance.
+  def initialize
+    @base = nil
+    @allowed_schemes = [ 'http', 'https', 'ftp', 'ftps' ]
+    @uri_scheme_re = @allowed_schemes.join('|')
+  end
+
+  # Parse and convert the argument in Creole text to HTML and return
+  # the result. The resulting HTML does not contain <html> and
+  # <body> tags.
   #
-  # This class is not reentrant. A separate instance is needed for
-  # each thread that needs to convert Creole to HTML.
+  # Example:
   #
-  # Inherit this to provide custom handling of links. The overrideable
-  # methods are: make_local_link
-  class CreoleParser
+  #    parser = CreoleParser.new
+  #    parser.parse("**Hello //World//**")
+  #       #=> "<p><strong>Hello <em>World</em></strong></p>"
+  def parse(string)
+    @out = ""
+    @p = false
+    @stack = []
+    parse_block(string)
+    @out
+  end
 
-    # Create a new CreoleParser instance.
-    def initialize
-      @base = nil
-      @allowed_schemes = [ 'http', 'https', 'ftp', 'ftps' ]
-      @uri_scheme_re = @allowed_schemes.join('|')
-    end
+  protected
 
-    # Parse and convert the argument in Creole text to HTML and return
-    # the result. The resulting HTML does not contain <html> and
-    # <body> tags.
-    #
-    # Example:
-    #
-    #    parser = CreoleParser.new
-    #    parser.parse("**Hello //World//**")
-    #       #=> "<p><strong>Hello <em>World</em></strong></p>"
-    def parse(string)
-      @out = ""
-      @strong = false
-      @p = false
-      @stack = []
-      parse_block(string)
-      return @out
-    end
+  # Escape any characters with special meaning in HTML using HTML
+  # entities.
+  def escape_html(string)
+    CGI::escapeHTML(string)
+  end
 
-    # Escape any characters with special meaning in HTML using HTML
-    # entities.
-    private
-    def escape_html(string)
-      CGI::escapeHTML(string)
-    end
+  # Escape any characters with special meaning in URLs using URL
+  # encoding.
+  def escape_url(string)
+    CGI::escape(string)
+  end
 
-    # Escape any characters with special meaning in URLs using URL
-    # encoding.
-    private
-    def escape_url(string)
-      CGI::escape(string)
-    end
+  def start_tag(tag)
+    @stack.push(tag)
+    @out << '<' << tag << '>'
+  end
 
-    private
+  def end_tag
+    @out << '</' << @stack.pop << '>'
+  end
 
-    def start_tag(tag)
-      @stack.push(tag)
-      @out << '<' << tag << '>'
-    end
-
-    def end_tag
-      @out << '</' << @stack.pop << '>'
-    end
-
-    def toggle_tag(tag, match)
-      if @stack.include?(tag)
-        if @stack.last == tag
-          end_tag
-        else
-          @out << escape_html(match)
-        end
+  def toggle_tag(tag, match)
+    if @stack.include?(tag)
+      if @stack.last == tag
+        end_tag
       else
-        start_tag(tag)
+        @out << escape_html(match)
       end
+    else
+      start_tag(tag)
     end
+  end
 
-    def end_paragraph
-      end_tag while !@stack.empty?
-      @p = false
-    end
+  def end_paragraph
+    end_tag while !@stack.empty?
+    @p = false
+  end
 
-    def start_paragraph
-      if @p
-        @out << ' ' if @out[-1,1] != ' '
-      else
-        end_paragraph
-        start_tag('p')
-        @p = true
-      end
-    end
-
-    # Create anchor markup for direct links. This
-    # method can be overridden to generate custom
-    # markup, for example to add html additional attributes.
-    private
-    def make_direct_anchor(uri, text)
-      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
-    end
-
-    # Create anchor markup for explicit links. This
-    # method can be overridden to generate custom
-    # markup, for example to add html additional attributes.
-    private
-    def make_explicit_anchor(uri, text)
-      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
-    end
-
-    # Translate an explicit local link to a desired URL that is
-    # properly URL-escaped. The default behaviour is to convert local
-    # links directly, escaping any characters that have special
-    # meaning in URLs. Relative URLs in local links are not handled.
-    #
-    # Examples:
-    #
-    #   make_local_link("LocalLink") #=> "LocalLink"
-    #   make_local_link("/Foo/Bar") #=> "%2FFoo%2FBar"
-    #
-    # Must ensure that the result is properly URL-escaped. The caller
-    # will handle HTML escaping as necessary. HTML links will not be
-    # inserted if the function returns nil.
-    #
-    # Example custom behaviour:
-    #
-    #   make_local_link("LocalLink") #=> "/LocalLink"
-    #   make_local_link("Wikipedia:Bread") #=> "http://en.wikipedia.org/wiki/Bread"
-    private
-    def make_local_link(link) #:doc:
-      escape_url(link)
-    end
-
-    # Sanatize a direct url (e.g. http://wikipedia.org/). The default
-    # behaviour returns the original link as-is.
-    #
-    # Must ensure that the result is properly URL-escaped. The caller
-    # will handle HTML escaping as necessary. Links will not be
-    # converted to HTML links if the function returns link.
-    #
-    # Custom versions of this function in inherited classes can
-    # implement specific link handling behaviour, such as redirection
-    # to intermediate pages (for example, for notifing the user that
-    # he is leaving the site).
-    private
-    def make_direct_link(url) #:doc:
-      return url
-    end
-
-    # Sanatize and prefix image URLs. When images are encountered in
-    # Creole text, this function is called to obtain the actual URL of
-    # the image. The default behaviour is to return the image link
-    # as-is. No image tags are inserted if the function returns nil.
-    #
-    # Custom version of the method can be used to sanatize URLs
-    # (e.g. remove query-parts), inhibit off-site images, or add a
-    # base URL, for example:
-    #
-    #    def make_image_link(url)
-    #       URI.join("http://mywiki.org/images/", url)
-    #    end
-    private
-    def make_image_link(url) #:doc:
-      return url
-    end
-
-    # Create image markup.  This
-    # method can be overridden to generate custom
-    # markup, for example to add html additional attributes or
-    # to put divs around the imgs.
-    private
-    def make_image(uri, alt)
-      if alt
-        '<img src="' << escape_html(uri) << '" alt="' << escape_html(alt) << '"/>'
-      else
-        '<img src="' << escape_html(uri) << '"/>'
-      end
-    end
-
-    private
-    def make_explicit_link(link)
-      begin
-        uri = URI.parse(link)
-        return uri.to_s if uri.scheme && @allowed_schemes.include?(uri.scheme)
-      rescue URI::InvalidURIError
-      end
-      return make_local_link(link)
-    end
-
-    def parse_inline(str)
-      until str.empty?
-        case str
-        when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'\)])?(\s|$))/
-          if $1
-            @out << escape_html($2)
-          else
-            if uri = make_direct_link($2)
-              @out << make_direct_anchor(uri, $2)
-            else
-              @out << escape_html($&)
-            end
-          end
-        when /\A\[\[\s*([^|]*?)\s*(\|\s*(.*?))?\s*\]\]/m
-          link = $1
-          if uri = make_explicit_link(link)
-            @out << make_explicit_anchor(uri, $3 || link)
-          else
-            @out << escape_html($&)
-          end
-        when /\A\{\{\{(.*)\}\}\}/
-          @out << '<tt>' << escape_html($1) << '</tt>'
-        when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
-          if uri = make_image_link($1)
-            @out << make_image(uri, $3)
-          else
-            @out << escape_html($&)
-          end
-        when /\A~([^\s])/
-          @out << escape_html($1)
-        when /\A\w+/
-	  @out << $&
-        when /\A\s+/
-          @out << ' ' if @out[-1,1] != ' '
-	when /\A\*\*/
-          toggle_tag 'strong', $&
-        when /\A\/\//
-          toggle_tag 'em', $&
-        when /\A\\\\/
-          @out << '<br/>'
-        when /./
-          @out << escape_html($&)
-        else
-          raise CreoleParseError, "Parse error at #{str[0,30].inspect}"
-        end
-        str = $'
-      end
-    end
-
-    def parse_table_row(str)
-      @out << '<tr>'
-      str.scan(/\s*\|(=)?\s*((\[\[.*?\]\]|\{\{.*?\}\}|[^|~]|~.)*)(?=\||$)/) do
-        if !$2.empty? || !$'.empty?
-          @out << ($1 ? '<th>' : '<td>')
-          parse_inline($2) if $2
-          end_tag while @stack.last != 'table'
-          @out << ($1 ? '</th>' : '</td>')
-        end
-      end
-      @out << '</tr>'
-    end
-
-    def make_nowikiblock(input)
-      input.gsub(/^ (?=\}\}\})/, '')
-    end
-
-    def ulol?(x); x == 'ul' || x == 'ol'; end
-
-    def parse_block(str)
-      until str.empty?
-        case str
-        when /\A\{\{\{\r?\n(.*?)\r?\n\}\}\}/m
-          end_paragraph
-          nowikiblock = make_nowikiblock($1)
-          @out << '<pre>' << escape_html(nowikiblock) << '</pre>'
-        when /\A\s*-{4,}\s*$/
-          end_paragraph
-          @out << '<hr/>'
-        when /\A\s*(={1,6})\s*(.*?)\s*=*\s*$(\r?\n)?/
-          end_paragraph
-          level = $1.size
-          @out << "<h#{level}>" << escape_html($2) << "</h#{level}>"
-        when /\A[ \t]*\|.*$(\r?\n)?/
-          if !@stack.include?('table')
-            end_paragraph
-            start_tag('table')
-          end
-          parse_table_row($&)
-        when /\A\s*$(\r?\n)?/
-          end_paragraph
-        when /\A(\s*([*#]+)\s*(.*?))$(\r?\n)?/
-          line, bullet, item = $1, $2, $3
-          tag = (bullet[0,1] == '*' ? 'ul' : 'ol')
-          if bullet[0,1] == '#' || bullet.size != 2 || @stack.find {|x| ulol?(x) }
-            count = @stack.select { |x| ulol?(x) }.size
-
-            while !@stack.empty? && count > bullet.size
-              count -= 1 if ulol?(@stack.last)
-              end_tag
-            end
-
-            end_tag while !@stack.empty? && @stack.last != 'li'
-
-            if @stack.last == 'li' && count == bullet.size
-              end_tag
-              if @stack.last != tag
-                end_tag
-                count -= 1
-              end
-            end
-
-            while count < bullet.size
-              start_tag tag
-              count += 1
-              start_tag 'li' if count < bullet.size
-            end
-
-            @p = true
-            start_tag('li')
-            parse_inline(item)
-          else
-            start_paragraph
-            parse_inline(line)
-          end
-        when /\A([ \t]*\S+.*?)$(\r?\n)?/
-          start_paragraph
-          parse_inline($1)
-        else
-          raise CreoleParseError, "Parse error at #{str[0,30].inspect}"
-        end
-        #p [$&, $']
-        str = $'
-      end
+  def start_paragraph
+    if @p
+      @out << ' ' if @out[-1,1] != ' '
+    else
       end_paragraph
-      return @out
+      start_tag('p')
+      @p = true
     end
+  end
 
-  end # class CreoleParser
+  # Create anchor markup for direct links. This
+  # method can be overridden to generate custom
+  # markup, for example to add html additional attributes.
+  def make_direct_anchor(uri, text)
+    '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
+  end
 
-end # module Creole
+  # Create anchor markup for explicit links. This
+  # method can be overridden to generate custom
+  # markup, for example to add html additional attributes.
+  def make_explicit_anchor(uri, text)
+    '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
+  end
+
+  # Translate an explicit local link to a desired URL that is
+  # properly URL-escaped. The default behaviour is to convert local
+  # links directly, escaping any characters that have special
+  # meaning in URLs. Relative URLs in local links are not handled.
+  #
+  # Examples:
+  #
+  #   make_local_link("LocalLink") #=> "LocalLink"
+  #   make_local_link("/Foo/Bar") #=> "%2FFoo%2FBar"
+  #
+  # Must ensure that the result is properly URL-escaped. The caller
+  # will handle HTML escaping as necessary. HTML links will not be
+  # inserted if the function returns nil.
+  #
+  # Example custom behaviour:
+  #
+  #   make_local_link("LocalLink") #=> "/LocalLink"
+  #   make_local_link("Wikipedia:Bread") #=> "http://en.wikipedia.org/wiki/Bread"
+  def make_local_link(link) #:doc:
+    escape_url(link)
+  end
+
+  # Sanatize a direct url (e.g. http://wikipedia.org/). The default
+  # behaviour returns the original link as-is.
+  #
+  # Must ensure that the result is properly URL-escaped. The caller
+  # will handle HTML escaping as necessary. Links will not be
+  # converted to HTML links if the function returns link.
+  #
+  # Custom versions of this function in inherited classes can
+  # implement specific link handling behaviour, such as redirection
+  # to intermediate pages (for example, for notifing the user that
+  # he is leaving the site).
+  def make_direct_link(url) #:doc:
+    url
+  end
+
+  # Sanatize and prefix image URLs. When images are encountered in
+  # Creole text, this function is called to obtain the actual URL of
+  # the image. The default behaviour is to return the image link
+  # as-is. No image tags are inserted if the function returns nil.
+  #
+  # Custom version of the method can be used to sanatize URLs
+  # (e.g. remove query-parts), inhibit off-site images, or add a
+  # base URL, for example:
+  #
+  #    def make_image_link(url)
+  #       URI.join("http://mywiki.org/images/", url)
+  #    end
+  def make_image_link(url) #:doc:
+    url
+  end
+
+  # Create image markup.  This
+  # method can be overridden to generate custom
+  # markup, for example to add html additional attributes or
+  # to put divs around the imgs.
+  def make_image(uri, alt)
+    if alt
+      '<img src="' << escape_html(uri) << '" alt="' << escape_html(alt) << '"/>'
+    else
+      '<img src="' << escape_html(uri) << '"/>'
+    end
+  end
+
+  def make_explicit_link(link)
+    begin
+      uri = URI.parse(link)
+      return uri.to_s if uri.scheme && @allowed_schemes.include?(uri.scheme)
+    rescue URI::InvalidURIError
+    end
+    make_local_link(link)
+  end
+
+  def parse_inline(str)
+    until str.empty?
+      case str
+      when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'\)])?(\s|$))/
+        if $1
+          @out << escape_html($2)
+        else
+          if uri = make_direct_link($2)
+            @out << make_direct_anchor(uri, $2)
+          else
+            @out << escape_html($&)
+          end
+        end
+      when /\A\[\[\s*([^|]*?)\s*(\|\s*(.*?))?\s*\]\]/m
+        link = $1
+        if uri = make_explicit_link(link)
+          @out << make_explicit_anchor(uri, $3 || link)
+        else
+          @out << escape_html($&)
+        end
+      when /\A\{\{\{(.*)\}\}\}/
+        @out << '<tt>' << escape_html($1) << '</tt>'
+      when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
+        if uri = make_image_link($1)
+          @out << make_image(uri, $3)
+        else
+          @out << escape_html($&)
+        end
+      when /\A~([^\s])/
+        @out << escape_html($1)
+      when /\A\w+/
+        @out << $&
+      when /\A\s+/
+        @out << ' ' if @out[-1,1] != ' '
+      when /\A\*\*/
+        toggle_tag 'strong', $&
+      when /\A\/\//
+        toggle_tag 'em', $&
+      when /\A\\\\/
+        @out << '<br/>'
+      when /./
+        @out << escape_html($&)
+      else
+        raise CreoleError, "Parse error at #{str[0,30].inspect}"
+      end
+      str = $'
+    end
+  end
+
+  def parse_table_row(str)
+    @out << '<tr>'
+    str.scan(/\s*\|(=)?\s*((\[\[.*?\]\]|\{\{.*?\}\}|[^|~]|~.)*)(?=\||$)/) do
+      if !$2.empty? || !$'.empty?
+        @out << ($1 ? '<th>' : '<td>')
+        parse_inline($2) if $2
+        end_tag while @stack.last != 'table'
+        @out << ($1 ? '</th>' : '</td>')
+      end
+    end
+    @out << '</tr>'
+  end
+
+  def make_nowikiblock(input)
+    input.gsub(/^ (?=\}\}\})/, '')
+  end
+
+  def ulol?(x); x == 'ul' || x == 'ol'; end
+
+  def parse_block(str)
+    until str.empty?
+      case str
+      when /\A\{\{\{\r?\n(.*?)\r?\n\}\}\}/m
+        end_paragraph
+        nowikiblock = make_nowikiblock($1)
+        @out << '<pre>' << escape_html(nowikiblock) << '</pre>'
+      when /\A\s*-{4,}\s*$/
+        end_paragraph
+        @out << '<hr/>'
+      when /\A\s*(={1,6})\s*(.*?)\s*=*\s*$(\r?\n)?/
+        end_paragraph
+        level = $1.size
+        @out << "<h#{level}>" << escape_html($2) << "</h#{level}>"
+      when /\A[ \t]*\|.*$(\r?\n)?/
+        if !@stack.include?('table')
+          end_paragraph
+          start_tag('table')
+        end
+        parse_table_row($&)
+      when /\A\s*$(\r?\n)?/
+        end_paragraph
+      when /\A(\s*([*#]+)\s*(.*?))$(\r?\n)?/
+        line, bullet, item = $1, $2, $3
+        tag = (bullet[0,1] == '*' ? 'ul' : 'ol')
+        if bullet[0,1] == '#' || bullet.size != 2 || @stack.find {|x| ulol?(x) }
+          count = @stack.select { |x| ulol?(x) }.size
+
+          while !@stack.empty? && count > bullet.size
+            count -= 1 if ulol?(@stack.last)
+            end_tag
+          end
+
+          end_tag while !@stack.empty? && @stack.last != 'li'
+
+          if @stack.last == 'li' && count == bullet.size
+            end_tag
+            if @stack.last != tag
+              end_tag
+              count -= 1
+            end
+          end
+
+          while count < bullet.size
+            start_tag tag
+            count += 1
+            start_tag 'li' if count < bullet.size
+          end
+
+          @p = true
+          start_tag('li')
+          parse_inline(item)
+        else
+          start_paragraph
+          parse_inline(line)
+        end
+      when /\A([ \t]*\S+.*?)$(\r?\n)?/
+        start_paragraph
+        parse_inline($1)
+      else
+        raise CreoleError, "Parse error at #{str[0,30].inspect}"
+      end
+      #p [$&, $']
+      str = $'
+    end
+    end_paragraph
+    @out
+  end
+
+end # class Creole
