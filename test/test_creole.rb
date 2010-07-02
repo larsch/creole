@@ -362,6 +362,7 @@ class TestCreole < Test::Unit::TestCase
 
     # ... works inline
     tc "<p>Hello <tt>world</tt>.</p>", "Hello {{{world}}}."
+    tc "<p><tt>Hello</tt> <tt>world</tt>.</p>", "{{{Hello}}} {{{world}}}."
 
     # Creole1.0: No wiki markup is interpreted inbetween
     tc "<pre>**Hello**</pre>", "{{{\n**Hello**\n}}}\n"

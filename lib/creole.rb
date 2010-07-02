@@ -238,7 +238,7 @@ class Creole
         else
           @out << escape_html($&)
         end
-      when /\A\{\{\{(.*)\}\}\}/
+      when /\A\{\{\{(.*?\}*)\}\}\}/
         @out << '<tt>' << escape_html($1) << '</tt>'
       when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
         if uri = make_image_link($1)
