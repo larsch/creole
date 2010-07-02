@@ -37,7 +37,7 @@ require 'uri'
 # methods are: make_local_link
 class Creole
 
-  VERSION = '0.3.4'
+  VERSION = '0.3.5'
 
   # CreoleError is raised when the Creole parser encounters
   # something unexpected. This is generally now thrown unless there is
