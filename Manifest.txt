@@ -3,4 +3,3 @@ README.txt
 Rakefile
 lib/creole.rb
 test/test_creole.rb
-test/testcases.rb

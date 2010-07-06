@@ -3,9 +3,13 @@ require 'creole'
 require 'cgi'
 
 class TestCreole < Test::Unit::TestCase
-  def tc(html, creole)
-    output = Creole.creolize(creole)
+  def tc(html, creole, options = {})
+    output = Creole.creolize(creole, options)
     assert html === output, "Parsing: #{creole.inspect}\nExpected: #{html.inspect}\n     Was: #{output.inspect}"
+  end
+
+  def tce(html, creole)
+    tc(html, creole, :extensions => true)
   end
 
   def run_file(file)
@@ -628,5 +632,30 @@ class TestCreole < Test::Unit::TestCase
   def test_bold_combo
     tc("<p><strong>bold and</strong></p><table><tr><td>table</td></tr></table><p>end<strong></strong></p>",
        "**bold and\n|table|\nend**")
+  end
+
+  def test_extensions
+    tc("<p>This is not __underlined__</p>",
+       "This is not __underlined__")
+
+    tce("<p>This is <u>underlined</u></p>",
+        "This is __underlined__")
+
+    tce("<p>This is <del>deleted</del></p>",
+        "This is --deleted--")
+
+    tce("<p>This is <ins>inserted</ins></p>",
+        "This is ++inserted++")
+
+    tce("<p>This is <sup>super</sup></p>",
+        "This is ^^super^^")
+
+    tce("<p>This is <sub>sub</sub></p>",
+        "This is ~~sub~~")
+
+    tce("<p>&#174;</p>", "(R)")
+    tce("<p>&#174;</p>", "(r)")
+    tce("<p>&#169;</p>", "(C)")
+    tce("<p>&#169;</p>", "(c)")
   end
 end

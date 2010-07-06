@@ -39,11 +39,6 @@ class Creole
 
   VERSION = '0.3.5'
 
-  # CreoleError is raised when the Creole parser encounters
-  # something unexpected. This is generally now thrown unless there is
-  # a bug in the parser.
-  class CreoleError < Exception; end
-
   # Convert the argument in Creole format to HTML and return the
   # result. Example:
   #
@@ -51,32 +46,40 @@ class Creole
   #        #=> "<p><strong>Hello <em>World</em></strong></p>"
   #
   # This is an alias for calling Creole#parse:
-  #    Creole.new.parse(creole)
-  def self.creolize(creole)
-    new.parse(creole)
+  #    Creole.new(text).to_html
+  def self.creolize(text, options = {})
+    new(text, options).to_html
   end
+
+  # Allowed url schemes
+  # Examples: http https ftp ftps
+  attr_accessor :allowed_schemes
+
+  # Extensions enabled?
+  attr_writer :extensions
+  def extensions?; @extensions; end
 
   # Create a new CreoleParser instance.
-  def initialize
-    @base = nil
-    @allowed_schemes = [ 'http', 'https', 'ftp', 'ftps' ]
-    @uri_scheme_re = @allowed_schemes.join('|')
+  def initialize(text, options = {})
+    @allowed_schemes = options[:allowed_schemes] || %w(http https ftp ftps)
+    @extensions = options[:extensions]
+    @text = text
   end
 
-  # Parse and convert the argument in Creole text to HTML and return
+  # Convert CCreole text to HTML and return
   # the result. The resulting HTML does not contain <html> and
   # <body> tags.
   #
   # Example:
   #
-  #    parser = CreoleParser.new
-  #    parser.parse("**Hello //World//**")
+  #    parser = CreoleParser.new("**Hello //World//**", :extensions => true)
+  #    parser.to_html
   #       #=> "<p><strong>Hello <em>World</em></strong></p>"
-  def parse(string)
-    @out = ""
+  def to_html
+    @out = ''
     @p = false
     @stack = []
-    parse_block(string)
+    parse_block(@text)
     @out
   end
 
@@ -246,9 +249,7 @@ class Creole
         else
           @out << escape_html($&)
         end
-      when /\A~([^\s])/
-        @out << escape_html($1)
-      when /\A\w+/
+      when /\A([:alpha:]|[:digit:])+/
         @out << $&
       when /\A\s+/
         @out << ' ' if @out[-1,1] != ' '
@@ -258,10 +259,36 @@ class Creole
         toggle_tag 'em', $&
       when /\A\\\\/
         @out << '<br/>'
-      when /./
-        @out << escape_html($&)
       else
-        raise CreoleError, "Parse error at #{str[0,30].inspect}"
+        if @extensions
+          case str
+          when /\A__/
+            toggle_tag 'u', $&
+          when /\A\-\-/
+            toggle_tag 'del', $&
+          when /\A\+\+/
+            toggle_tag 'ins', $&
+          when /\A\^\^/
+            toggle_tag 'sup', $&
+          when /\A\~\~/
+            toggle_tag 'sub', $&
+          when /\A\(R\)/i
+            @out << '&#174;'
+          when /\A\(C\)/i
+            @out << '&#169;'
+          when /\A~([^\s])/
+            @out << escape_html($1)
+          when /./
+            @out << escape_html($&)
+          end
+        else
+          case str
+          when /\A~([^\s])/
+            @out << escape_html($1)
+          when /./
+            @out << escape_html($&)
+          end
+        end
       end
       str = $'
     end
@@ -346,7 +373,7 @@ class Creole
         start_paragraph
         parse_inline($1)
       else
-        raise CreoleError, "Parse error at #{str[0,30].inspect}"
+        raise "Parse error at #{str[0,30].inspect}"
       end
       #p [$&, $']
       str = $'
@@ -355,4 +382,4 @@ class Creole
     @out
   end
 
-end # class Creole
+end
