@@ -9,11 +9,11 @@ Gem::Specification.new do |s|
   s.date = %q{2009-02-16}
   s.description = %q{Creole is a Creole-to-HTML converter for Creole, the lightwight markup language (http://wikicreole.org/).}
   s.email = ["larsch@belunktum.dk", "mail@daniel-mendler.de"]
-  s.extra_rdoc_files = ["Manifest.txt", "README.txt"]
-  s.files = ["Manifest.txt", "README.txt", "Rakefile", "lib/creole.rb", "test/test_creole.rb"]
+  s.extra_rdoc_files = ["Manifest.txt", "README.creole"]
+  s.files = ["Manifest.txt", "README.creole", "Rakefile", "lib/creole.rb", "test/test_creole.rb"]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/minad/creole}
-  s.rdoc_options = ["--main", "README.txt"]
+  s.rdoc_options = ["--main", "README.creole"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{creole}
   s.rubygems_version = %q{1.3.1}
