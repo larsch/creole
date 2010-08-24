@@ -37,7 +37,7 @@ require 'uri'
 # methods are: make_local_link
 class Creole
 
-  VERSION = '0.3.6'
+  VERSION = '0.3.7'
 
   # Convert the argument in Creole format to HTML and return the
   # result. Example:
