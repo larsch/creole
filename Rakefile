@@ -1,11 +1,6 @@
-require 'hoe'
+task :default => :test
 
-$:.unshift 'lib'
-require 'creole'
-
-Hoe.spec "creole" do
-  version = Creole::VERSION
-  developer 'Lars Christensen', 'larsch@belunktum.dk'
-  developer 'Daniel Mendler', 'mail@daniel-mendler.de'
+desc 'Run tests with bacon'
+task :test => FileList['test/*_test.rb'] do |t|
+  sh "bacon -q -Ilib:test #{t.prerequisites.join(' ')}"
 end
-

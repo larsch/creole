@@ -55,15 +55,22 @@ class Creole
   # Examples: http https ftp ftps
   attr_accessor :allowed_schemes
 
-  # Extensions enabled?
+  # Non-standard wiki text extensions enabled?
+  # E.g. underlined, deleted text etc
   attr_writer :extensions
   def extensions?; @extensions; end
 
+  # Disable url escaping for local links
+  # Escaping: [[/Test]] --> %2FTest
+  # No escaping: [[/Test]] --> Test
+  attr_writer :no_escape
+  def no_escape?; @no_escape; end
+
   # Create a new CreoleParser instance.
   def initialize(text, options = {})
-    @allowed_schemes = options[:allowed_schemes] || %w(http https ftp ftps)
-    @extensions = options[:extensions]
-    @text = text
+    @allowed_schemes = %w(http https ftp ftps)
+    @text            = text
+    options.each_pair {|k,v| send("#{k}=", v) }
   end
 
   # Convert CCreole text to HTML and return
@@ -166,7 +173,7 @@ class Creole
   #   make_local_link("LocalLink") #=> "/LocalLink"
   #   make_local_link("Wikipedia:Bread") #=> "http://en.wikipedia.org/wiki/Bread"
   def make_local_link(link) #:doc:
-    escape_url(link)
+    no_escape? ? link : escape_url(link)
   end
 
   # Sanatize a direct url (e.g. http://wikipedia.org/). The default

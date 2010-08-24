@@ -1,31 +1,17 @@
-require 'test/unit'
 require 'creole'
-require 'cgi'
 
-class TestCreole < Test::Unit::TestCase
+class Bacon::Context
   def tc(html, creole, options = {})
-    output = Creole.creolize(creole, options)
-    assert html === output, "Parsing: #{creole.inspect}\nExpected: #{html.inspect}\n     Was: #{output.inspect}"
+    Creole.creolize(creole, options).should.equal html
   end
 
   def tce(html, creole)
     tc(html, creole, :extensions => true)
   end
+end
 
-  def run_file(file)
-    html = File.read(file.sub('.creole', '.html'))
-    output = Creole.creolize(File.read(file))
-
-    puts html
-    puts output
-    assert html === output, "Parsing #{file} failed"
-  end
-
-  def escape_html(html)
-    CGI::escapeHTML(html)
-  end
-
-  def test_bold
+describe Creole do
+  it 'should parse bold' do
     # Creole1.0: Bold can be used inside paragraphs
     tc "<p>This <strong>is</strong> bold</p>", "This **is** bold"
     tc "<p>This <strong>is</strong> bold and <strong>bold</strong>ish</p>", "This **is** bold and **bold**ish"
@@ -60,7 +46,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p>This <strong>is bold</strong></p>", "This **is\nbold**"
   end
 
-  def test_italic
+  it 'should parse italic' do
     # Creole1.0: Italic can be used inside paragraphs
     tc("<p>This <em>is</em> italic</p>",
        "This //is// italic")
@@ -97,7 +83,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p>This <em>is italic</em></p>", "This //is\nitalic//"
   end
 
-  def test_bold_italics
+  it 'should parse bold italics' do
     # Creole1.0: By example
     tc "<p><strong><em>bold italics</em></strong></p>", "**//bold italics//**"
 
@@ -108,7 +94,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p><em>This is <strong>also</strong> good.</em></p>", "//This is **also** good.//"
   end
 
-  def test_headings
+  it 'should parse headings' do
     # Creole1.0: Only three differed sized levels of heading are required.
     tc "<h1>Heading 1</h1>", "= Heading 1 ="
     tc "<h2>Heading 2</h2>", "== Heading 2 =="
@@ -145,7 +131,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p>foo = Heading 1 =</p>", "foo = Heading 1 ="
   end
 
-  def test_links
+  it 'should parse links' do
     # Creole1.0: Links
     tc "<p><a href=\"link\">link</a></p>", "[[link]]"
 
@@ -163,10 +149,10 @@ class TestCreole < Test::Unit::TestCase
 
     # Creole1.0: Single punctuation characters at the end of URLs
     # should not be considered a part of the URL.
-    [',','.','?','!',':',';','\'','"'].each { |punct|
-      esc_punct = escape_html(punct)
+    [',','.','?','!',':',';','\'','"'].each do |punct|
+      esc_punct = CGI::escapeHTML(punct)
       tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a>#{esc_punct}</p>", "http://www.wikicreole.org/#{punct}"
-    }
+    end
     # Creole1.0: Nameds URLs (by example)
     tc("<p><a href=\"http://www.wikicreole.org/\">Visit the WikiCreole website</a></p>",
        "[[http://www.wikicreole.org/|Visit the WikiCreole website]]")
@@ -184,7 +170,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<p><a href=\"http://dot.com/\">dot.com</a></p>", "[[  http://dot.com/  |  dot.com ]]")
   end
 
-  def test_paragraph
+  it 'should parse paragraphs' do
     # Creole1.0: One or more blank lines end paragraphs.
     tc "<p>This is my text.</p><p>This is more text.</p>", "This is\nmy text.\n\nThis is\nmore text."
     tc "<p>This is my text.</p><p>This is more text.</p>", "This is\nmy text.\n\n\nThis is\nmore text."
@@ -203,12 +189,12 @@ class TestCreole < Test::Unit::TestCase
     tc "<p>Hello</p><h1>Heading</h1>", "Hello\n= Heading =\n"
   end
 
-  def test_linebreak
+  it 'should parse linebreaks' do
     # Creole1.0: \\ (wiki-style) for line breaks.
     tc "<p>This is the first line,<br/>and this is the second.</p>", "This is the first line,\\\\and this is the second."
   end
 
-  def test_unordered_lists
+  it 'should parse unordered_lists' do
     # Creole1.0: List items begin with a * at the beginning of a line.
     # Creole1.0: An item ends at the next *
     tc "<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>", "* Item 1\n *Item 2\n *\t\tItem 3\n"
@@ -261,7 +247,7 @@ class TestCreole < Test::Unit::TestCase
        "*Hello,\nWorld!\n\n**Not bold\n")
   end
 
-  def test_ordered_lists
+  it 'should parse ordered lists' do
     # Creole1.0: List items begin with a * at the beginning of a line.
     # Creole1.0: An item ends at the next *
     tc "<ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol>", "# Item 1\n #Item 2\n #\t\tItem 3\n"
@@ -305,7 +291,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<ol><li><ol><li>Item</li></ol></li></ol>", "##Item")
   end
 
-  def test_ordered_lists2
+  it 'should parse ordered lists #2' do
     tc "<ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol>", "# Item 1\n #Item 2\n #\t\tItem 3\n"
     # Nested
     tc "<ol><li>Item 1<ol><li>Item 2</li></ol></li><li>Item 3</li></ol>", "# Item 1\n ##Item 2\n #\t\tItem 3\n"
@@ -313,7 +299,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<ol><li>Item 1 on multiple lines</li></ol>", "# Item 1\non multiple lines"
   end
 
-  def test_ambiguity_mixed_lists
+  it 'should parse ambiguious mixed lists' do
     # ol following ul
     tc("<ul><li>uitem</li></ul><ol><li>oitem</li></ol>", "*uitem\n#oitem\n")
 
@@ -338,7 +324,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<ol><li><ol><li>oitem1</li></ol></li></ol><ul><li>oitem2</li></ul>", "##oitem1\n*oitem2\n")
   end
 
-  def test_ambiguity_italics_and_url
+  it 'should parse ambiguious italics and url' do
     # Uncommon URL schemes should not be parsed as URLs
     tc("<p>This is what can go wrong:<em>this should be an italic text</em>.</p>",
        "This is what can go wrong://this should be an italic text//.")
@@ -355,12 +341,12 @@ class TestCreole < Test::Unit::TestCase
        "Blablabala (http://blub.de)")
   end
 
-  def test_ambiguity_bold_and_lists
+  it 'should parse ambiguious bold and lists' do
     tc "<p><strong> bold text </strong></p>", "** bold text **"
     tc "<p> <strong> bold text </strong></p>", " ** bold text **"
   end
 
-  def test_nowiki
+  it 'should parse nowiki' do
     # ... works as block
     tc "<pre>Hello</pre>", "{{{\nHello\n}}}\n"
 
@@ -389,7 +375,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<p>this is <tt>nowiki}}}}</tt></p>", "this is {{{nowiki}}}}}}}")
   end
 
-  def test_html_escaping
+  it 'should escape html' do
     # Special HTML chars should be escaped
     tc("<p>&lt;b&gt;not bold&lt;/b&gt;</p>", "<b>not bold</b>")
 
@@ -400,7 +386,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<p><a href=\"javascript%3Aalert%28%22Boo%21%22%29\">Click</a></p>", "[[javascript:alert(\"Boo!\")|Click]]")
   end
 
-  def test_escape
+  it 'should support character escape' do
     tc "<p>** Not Bold **</p>", "~** Not Bold ~**"
     tc "<p>// Not Italic //</p>", "~// Not Italic ~//"
     tc "<p>* Not Bullet</p>", "~* Not Bullet"
@@ -414,7 +400,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p>http://www.wikicreole.org/</p>", "~http://www.wikicreole.org/"
   end
 
-  def test_horizontal_rule
+  it 'should parse horizontal rule' do
     # Creole: Four hyphens make a horizontal rule
     tc "<hr/>", "----"
 
@@ -433,7 +419,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<p> -- -- </p>", "  --\t--  "
   end
 
-  def test_table
+  it 'should parse table' do
     tc "<table><tr><td>Hello, World!</td></tr></table>", "|Hello, World!|"
     # Multiple columns
     tc "<table><tr><td>c1</td><td>c2</td><td>c3</td></tr></table>", "|c1|c2|c3|"
@@ -455,7 +441,7 @@ class TestCreole < Test::Unit::TestCase
     tc "<table><tr><td>c1</td><td><a href=\"Link\">Link text</a></td><td><img src=\"Image\" alt=\"Image text\"/></td></tr></table>", "|c1|[[Link|Link text]]|{{Image|Image text}}|"
   end
 
-  def test_following_table
+  it 'should parse following table' do
     # table followed by heading
     tc("<table><tr><td>table</td></tr></table><h1>heading</h1>", "|table|\n=heading=\n")
     tc("<table><tr><td>table</td></tr></table><h1>heading</h1>", "|table|\n\n=heading=\n")
@@ -479,7 +465,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<table><tr><td>table</td></tr></table><table><tr><td>table</td></tr></table>", "|table|\n\n|table|\n")
   end
 
-  def test_following_heading
+  it 'should parse following heading' do
     # heading
     tc("<h1>heading1</h1><h1>heading2</h1>", "=heading1=\n=heading2\n")
     tc("<h1>heading1</h1><h1>heading2</h1>", "=heading1=\n\n=heading2\n")
@@ -503,7 +489,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<h1>heading</h1><table><tr><td>table</td></tr></table>", "=heading=\n\n|table|\n")
   end
 
-  def test_following_paragraph
+  it 'should parse following paragraph' do
     # heading
     tc("<p>par</p><h1>heading</h1>", "par\n=heading=")
     tc("<p>par</p><h1>heading</h1>", "par\n\n=heading=")
@@ -527,7 +513,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<p>par</p><table><tr><td>table</td></tr></table>", "par\n\n|table|\n")
   end
 
-  def test_following_unordered_list
+  it 'should parse following unordered list' do
     # heading
     tc("<ul><li>item</li></ul><h1>heading</h1>", "*item\n=heading=")
     tc("<ul><li>item</li></ul><h1>heading</h1>", "*item\n\n=heading=")
@@ -551,7 +537,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<ul><li>item</li></ul><table><tr><td>table</td></tr></table>", "*item\n\n|table|\n")
   end
 
-  def test_following_ordered_list
+  it 'should parse following ordered list' do
     # heading
     tc("<ol><li>item</li></ol><h1>heading</h1>", "#item\n=heading=")
     tc("<ol><li>item</li></ol><h1>heading</h1>", "#item\n\n=heading=")
@@ -575,7 +561,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<ol><li>item</li></ol><table><tr><td>table</td></tr></table>", "#item\n\n|table|\n")
   end
 
-  def test_following_horizontal_rule
+  it 'should parse following horizontal rule' do
     # heading
     tc("<hr/><h1>heading</h1>", "----\n=heading=")
     tc("<hr/><h1>heading</h1>", "----\n\n=heading=")
@@ -599,7 +585,7 @@ class TestCreole < Test::Unit::TestCase
     tc("<hr/><table><tr><td>table</td></tr></table>", "----\n\n|table|\n")
   end
 
-  def test_following_nowiki_block
+  it 'should parse following nowiki block' do
     # heading
     tc("<pre>nowiki</pre><h1>heading</h1>", "{{{\nnowiki\n}}}\n=heading=")
     tc("<pre>nowiki</pre><h1>heading</h1>", "{{{\nnowiki\n}}}\n\n=heading=")
@@ -623,18 +609,18 @@ class TestCreole < Test::Unit::TestCase
     tc("<pre>nowiki</pre><table><tr><td>table</td></tr></table>", "{{{\nnowiki\n}}}\n\n|table|\n")
   end
 
-  def test_image
+  it 'should parse image' do
     tc("<p><img src=\"image.jpg\"/></p>", "{{image.jpg}}")
     tc("<p><img src=\"image.jpg\" alt=\"tag\"/></p>", "{{image.jpg|tag}}")
     tc("<p><img src=\"http://example.org/image.jpg\"/></p>", "{{http://example.org/image.jpg}}")
   end
 
-  def test_bold_combo
+  it 'should parse bold combo' do
     tc("<p><strong>bold and</strong></p><table><tr><td>table</td></tr></table><p>end<strong></strong></p>",
        "**bold and\n|table|\nend**")
   end
 
-  def test_extensions
+  it 'should support extensions' do
     tc("<p>This is not __underlined__</p>",
        "This is not __underlined__")
 
@@ -657,5 +643,10 @@ class TestCreole < Test::Unit::TestCase
     tce("<p>&#174;</p>", "(r)")
     tce("<p>&#169;</p>", "(C)")
     tce("<p>&#169;</p>", "(c)")
+  end
+
+  it 'should support no_escape' do
+    tc("<p><a href=\"a%2Fb%2Fc\">a/b/c</a></p>", "[[a/b/c]]")
+    tc("<p><a href=\"a/b/c\">a/b/c</a></p>", "[[a/b/c]]", :no_escape => true)
   end
 end
