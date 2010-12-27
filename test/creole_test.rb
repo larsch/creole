@@ -144,9 +144,6 @@ describe Creole do
     # Creole1.0: URLs
     tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a></p>", "[[http://www.wikicreole.org/]]"
 
-    # Creole1.0: Free-standing URL's should be turned into links
-    tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a></p>", "http://www.wikicreole.org/"
-
     # Creole1.0: Single punctuation characters at the end of URLs
     # should not be considered a part of the URL.
     [',','.','?','!',':',';','\'','"'].each do |punct|
@@ -168,6 +165,26 @@ describe Creole do
     tc("<p><a href=\"link+me\">link me</a></p>", "[[ link me ]]")
     tc("<p><a href=\"http://dot.com/\">dot.com</a></p>", "[[  http://dot.com/ \t| \t dot.com ]]")
     tc("<p><a href=\"http://dot.com/\">dot.com</a></p>", "[[  http://dot.com/  |  dot.com ]]")
+  end
+
+  it 'should parse freestanding urls' do
+    # Creole1.0: Free-standing URL's should be turned into links
+    tc "<p><a href=\"http://www.wikicreole.org/\">http://www.wikicreole.org/</a></p>", "http://www.wikicreole.org/"
+
+    # URL ending in .
+    tc "<p>Text <a href=\"http://wikicreole.org\">http://wikicreole.org</a>. other text</p>", "Text http://wikicreole.org. other text"
+
+    # URL ending in ),
+    tc "<p>Text (<a href=\"http://wikicreole.org\">http://wikicreole.org</a>), other text</p>", "Text (http://wikicreole.org), other text"
+
+    # URL ending in ).
+    tc "<p>Text (<a href=\"http://wikicreole.org\">http://wikicreole.org</a>). other text</p>", "Text (http://wikicreole.org). other text"
+
+    # URL ending in ).
+    tc "<p>Text (<a href=\"http://wikicreole.org\">http://wikicreole.org</a>).</p>", "Text (http://wikicreole.org)."
+
+    # URL ending in )
+    tc "<p>Text (<a href=\"http://wikicreole.org\">http://wikicreole.org</a>)</p>", "Text (http://wikicreole.org)"
   end
 
   it 'should parse paragraphs' do
@@ -336,9 +353,6 @@ describe Creole do
     # Another test from Creole Wiki
     tc("<p>Formatted fruits, for example:<em>apples</em>, oranges, <strong>pears</strong> ...</p>",
        "Formatted fruits, for example://apples//, oranges, **pears** ...")
-
-    tc("<p>Blablabala (<a href=\"http://blub.de\">http://blub.de</a>)</p>",
-       "Blablabala (http://blub.de)")
   end
 
   it 'should parse ambiguious bold and lists' do

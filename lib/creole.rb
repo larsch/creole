@@ -231,7 +231,7 @@ class Creole
   def parse_inline(str)
     until str.empty?
       case str
-      when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([,.?!:;"'\)])?(\s|$))/
+      when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([\,.?!:;"'\)]+)?(\s|$))/
         if $1
           @out << escape_html($2)
         else
