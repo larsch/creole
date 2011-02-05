@@ -4,7 +4,7 @@ require 'uri'
 # :main: Creole
 
 # The Creole parses and translates Creole formatted text into
-# XHTML. Creole is a lightwight markup syntax similar to what many
+# XHTML. Creole is a lightweight markup syntax similar to what many
 # WikiWikiWebs use. Example syntax:
 #
 #   = Heading 1 =
