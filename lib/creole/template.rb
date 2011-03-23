@@ -4,10 +4,11 @@ require 'creole'
 module Creole
   class Template < Tilt::Template
     def prepare
-      @creole = Creole::Parser.new(data,
-                                   :allowed_schemes => options[:allowed_schemes],
-                                   :extensions => options[:extensions],
-                                   :no_escape => options[:no_escape])
+      opts = {}
+      [:allowed_schemes, :extensions, :no_escape].each do |k|
+        opts[k] = options[k] if options[k]
+      end
+      @creole = Creole::Parser.new(data, opts)
       @output = nil
     end
 
