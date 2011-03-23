@@ -1,5 +1,0 @@
-Manifest.txt
-README.creole
-Rakefile
-lib/creole.rb
-test/test_creole.rb
