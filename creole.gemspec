@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   s.require_paths = %w(lib)
 
   s.homepage = 'http://github.com/minad/creole'
-  s.rdoc_options = %w(--main README.creole)
+  
   s.add_development_dependency('bacon')
+  s.add_development_dependency('rake')
 end
