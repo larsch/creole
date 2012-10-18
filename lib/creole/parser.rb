@@ -57,6 +57,7 @@ module Creole
     def initialize(text, options = {})
       @allowed_schemes = %w(http https ftp ftps)
       @text            = text
+      @extensions = @no_escape = nil
       options.each_pair {|k,v| send("#{k}=", v) }
     end
 
