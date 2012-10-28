@@ -154,8 +154,9 @@ describe Creole::Parser do
     tc("<p><a href=\"http://www.wikicreole.org/\">Visit the WikiCreole website</a></p>",
        "[[http://www.wikicreole.org/|Visit the WikiCreole website]]")
 
-    # WARNING: Parsing markup within a link is optional
-    tc "<p><a href=\"Weird+Stuff\">**Weird** //Stuff//</a></p>", "[[Weird Stuff|**Weird** //Stuff//]]"
+    # WRNING: Parsing markup within a link is optional
+    tc "<p><a href=\"Weird+Stuff\"><strong>Weird</strong> <em>Stuff</em></a></p>", "[[Weird Stuff|**Weird** //Stuff//]]"
+    tc("<p><a href=\"http://example.org/\"><img src=\"image.jpg\"/></a></p>", "[[http://example.org/|{{image.jpg}}]]")
 
     # Inside bold
     tc "<p><strong><a href=\"link\">link</a></strong></p>", "**[[link]]**"

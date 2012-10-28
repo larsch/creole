@@ -128,13 +128,6 @@ module Creole
       end
     end
 
-    # Create anchor markup for direct links. This
-    # method can be overridden to generate custom
-    # markup, for example to add html additional attributes.
-    def make_direct_anchor(uri, text)
-      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
-    end
-
     # Create anchor markup for explicit links. This
     # method can be overridden to generate custom
     # markup, for example to add html additional attributes.
@@ -220,73 +213,90 @@ module Creole
       until str.empty?
         case str
         when /\A(\~)?((https?|ftps?):\/\/\S+?)(?=([\,.?!:;"'\)]+)?(\s|$))/
+          str = $'
           if $1
             @out << escape_html($2)
           else
             if uri = make_direct_link($2)
-              @out << make_direct_anchor(uri, $2)
+              @out << '<a href="' << escape_html(uri) << '">' << escape_html($2) << '</a>'
             else
               @out << escape_html($&)
             end
           end
         when /\A\[\[\s*([^|]*?)\s*(\|\s*(.*?))?\s*\]\]/m
-          link = $1
+          str = $'
+          link, content = $1, $3
           if uri = make_explicit_link(link)
-            @out << make_explicit_anchor(uri, $3 || link)
+            @out << '<a href="' << escape_html(uri) << '">'
+            if content
+              until content.empty?
+                content = parse_inline_tag(content)
+              end
+            else
+              @out << escape_html(link)
+            end
+            @out << '</a>'
           else
             @out << escape_html($&)
           end
-        when /\A\{\{\{(.*?\}*)\}\}\}/
-          @out << '<tt>' << escape_html($1) << '</tt>'
-        when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
-          if uri = make_image_link($1)
-            @out << make_image(uri, $3)
-          else
-            @out << escape_html($&)
-          end
-        when /\A([:alpha:]|[:digit:])+/
-          @out << $&
-        when /\A\s+/
-          @out << ' ' if @out[-1] != ?\s
-        when /\A\*\*/
-          toggle_tag 'strong', $&
-        when /\A\/\//
-          toggle_tag 'em', $&
-        when /\A\\\\/
-          @out << '<br/>'
         else
-          if @extensions
-            case str
-            when /\A__/
-              toggle_tag 'u', $&
-            when /\A\-\-/
-              toggle_tag 'del', $&
-            when /\A\+\+/
-              toggle_tag 'ins', $&
-            when /\A\^\^/
-              toggle_tag 'sup', $&
-            when /\A\~\~/
-              toggle_tag 'sub', $&
-            when /\A\(R\)/i
-              @out << '&#174;'
-            when /\A\(C\)/i
-              @out << '&#169;'
-            when /\A~([^\s])/
-              @out << escape_html($1)
-            when /./
-              @out << escape_html($&)
-            end
-          else
-            case str
-            when /\A~([^\s])/
-              @out << escape_html($1)
-            when /./
-              @out << escape_html($&)
-            end
+          str = parse_inline_tag(str)
+        end
+      end
+    end
+
+    def parse_inline_tag(str)
+      case str
+      when /\A\{\{\{(.*?\}*)\}\}\}/
+        @out << '<tt>' << escape_html($1) << '</tt>'
+      when /\A\{\{\s*(.*?)\s*(\|\s*(.*?)\s*)?\}\}/
+        if uri = make_image_link($1)
+          @out << make_image(uri, $3)
+        else
+          @out << escape_html($&)
+        end
+      when /\A([:alpha:]|[:digit:])+/
+        @out << $&
+      when /\A\s+/
+        @out << ' ' if @out[-1] != ?\s
+      when /\A\*\*/
+        toggle_tag 'strong', $&
+      when /\A\/\//
+        toggle_tag 'em', $&
+      when /\A\\\\/
+        @out << '<br/>'
+      else
+        if @extensions
+          case str
+          when /\A__/
+            toggle_tag 'u', $&
+          when /\A\-\-/
+            toggle_tag 'del', $&
+          when /\A\+\+/
+            toggle_tag 'ins', $&
+          when /\A\^\^/
+            toggle_tag 'sup', $&
+          when /\A\~\~/
+            toggle_tag 'sub', $&
+          when /\A\(R\)/i
+            @out << '&#174;'
+          when /\A\(C\)/i
+            @out << '&#169;'
+          when /\A~([^\s])/
+            @out << escape_html($1)
+          when /./
+            @out << escape_html($&)
+          end
+        else
+          case str
+          when /\A~([^\s])/
+            @out << escape_html($1)
+          when /./
+            @out << escape_html($&)
           end
         end
-        str = $'
       end
+      return $'
     end
 
     def parse_table_row(str)
