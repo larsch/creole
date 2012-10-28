@@ -120,7 +120,7 @@ module Creole
 
     def start_paragraph
       if @p
-        @out << ' ' if @out[-1,1] != ' '
+        @out << ' ' if @out[-1] != ?\s
       else
         end_paragraph
         start_tag('p')
@@ -247,7 +247,7 @@ module Creole
         when /\A([:alpha:]|[:digit:])+/
           @out << $&
         when /\A\s+/
-          @out << ' ' if @out[-1,1] != ' '
+          @out << ' ' if @out[-1] != ?\s
         when /\A\*\*/
           toggle_tag 'strong', $&
         when /\A\/\//
