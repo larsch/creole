@@ -24,8 +24,8 @@ require 'uri'
 # hierachical local links, you must inherit Creole::CreoleParser and
 # override make_local_link.
 #
-# You can customize the created anchor/image markup by overriding
-# make_*_anchor/make_image.
+# You can customize the created image markup by overriding
+# make_image.
 
 # Main Creole parser class.  Call CreoleParser#parse to parse Creole
 # formatted text.
@@ -126,13 +126,6 @@ module Creole
         start_tag('p')
         @p = true
       end
-    end
-
-    # Create anchor markup for explicit links. This
-    # method can be overridden to generate custom
-    # markup, for example to add html additional attributes.
-    def make_explicit_anchor(uri, text)
-      '<a href="' << escape_html(uri) << '">' << escape_html(text) << '</a>'
     end
 
     # Translate an explicit local link to a desired URL that is
