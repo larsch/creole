@@ -193,6 +193,10 @@ module Creole
       end
     end
 
+    def make_headline(level, text)
+      "<h#{level}>" << escape_html(text) << "</h#{level}>"
+    end
+
     def make_explicit_link(link)
       begin
         uri = URI.parse(link)
@@ -324,7 +328,7 @@ module Creole
         when /\A\s*(={1,6})\s*(.*?)\s*=*\s*$(\r?\n)?/
           end_paragraph
           level = $1.size
-          @out << "<h#{level}>" << escape_html($2) << "</h#{level}>"
+          @out << make_headline(level, $2)
         when /\A[ \t]*\|.*$(\r?\n)?/
           if !@stack.include?('table')
             end_paragraph
