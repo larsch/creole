@@ -252,7 +252,7 @@ module Creole
         else
           @out << escape_html($&)
         end
-      when /\A([:alpha:]|[:digit:])+/
+      when /\A([[:alpha:]]|[[:digit:]])+/
         @out << $&
       when /\A\s+/
         @out << ' ' if @out[-1] != ?\s
