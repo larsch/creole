@@ -1,16 +1,20 @@
 require 'creole'
 
-class Bacon::Context
+describe Creole::Parser do
   def tc(html, creole, options = {})
-    Creole.creolize(creole, options).should.equal html
+    if defined? Bacon
+      Creole.creolize(creole, options).should.equal html
+    elsif defined? RSpec
+      expect(Creole.creolize(creole, options)).to eq(html)
+    else
+      raise "unkown testing framework"
+    end
   end
 
   def tce(html, creole)
     tc(html, creole, :extensions => true)
   end
-end
 
-describe Creole::Parser do
   it 'should parse bold' do
     # Creole1.0: Bold can be used inside paragraphs
     tc "<p>This <strong>is</strong> bold</p>", "This **is** bold"
@@ -663,5 +667,32 @@ describe Creole::Parser do
   it 'should support no_escape' do
     tc("<p><a href=\"a%2Fb%2Fc\">a/b/c</a></p>", "[[a/b/c]]")
     tc("<p><a href=\"a/b/c\">a/b/c</a></p>", "[[a/b/c]]", :no_escape => true)
+  end
+
+  it 'should support keep_line_break' do
+    tc "<p>This is my text.</p>",
+       "This is my text.", :keep_line_break => true
+    tc "<p>This<br/>is<br/>my<br/>text.</p>",
+       "This\nis\nmy\ntext.\n", :keep_line_break => true
+
+    tc "<p>This <strong>is<br/>bold</strong></p>",
+       "This **is\nbold**", :keep_line_break => true
+    tc "<p>This <em>is<br/>italic</em></p>",
+       "This //is\nitalic//", :keep_line_break => true
+
+    tc "<ul><li>The quick brown fox jumps over lazy dog.</li></ul>",
+       "* The quick brown\nfox jumps over lazy dog.", :keep_line_break => true
+    tc "<ol><li>The quick brown fox jumps over lazy dog.</li></ol>",
+       "# The quick brown\nfox jumps over lazy dog.", :keep_line_break => true
+
+    tc "<pre>Hello\nWorld</pre>",
+       "{{{\nHello\nWorld\n}}}", :keep_line_break => true
+    tc "<p> {{{<br/>Hello<br/>}}}</p>",
+       " {{{\nHello\n}}}", :keep_line_break => true
+    tc "<p>{{{<br/>Hello<br/> }}}</p>",
+       "{{{\nHello\n }}}", :keep_line_break => true
+
+    tc "<p>Hello ~<br/>world</p>",
+       "Hello ~\nworld\n", :keep_line_break => true
   end
 end

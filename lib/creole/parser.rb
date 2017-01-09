@@ -53,11 +53,19 @@ module Creole
     attr_writer :no_escape
     def no_escape?; @no_escape; end
 
+    # Keep line break in <p>
+    # (default: false)
+    # true:  aa\nbb\n --> <p>aa<br/>bb</p>
+    # false: aa\nbb\n --> <p>aa bb</p>
+    attr_writer :keep_line_break
+    def keep_line_break?; @keep_line_break; end
+
     # Create a new CreoleParser instance.
     def initialize(text, options = {})
       @allowed_schemes = %w(http https ftp ftps)
       @text            = text
       @extensions = @no_escape = nil
+      @keep_line_break = false
       options.each_pair {|k,v| send("#{k}=", v) }
     end
 
@@ -98,6 +106,7 @@ module Creole
     end
 
     def end_tag
+      @out.sub!(/<br\/?>\z/, '') if @keep_line_break
       @out << '</' << @stack.pop << '>'
     end
 
@@ -120,7 +129,7 @@ module Creole
 
     def start_paragraph
       if @p
-        @out << ' ' if @out[-1] != ?\s
+        @out << ' ' if (!@keep_line_break || @stack.last == 'li') && @out[-1] != ?\s
       else
         end_paragraph
         start_tag('p')
@@ -374,6 +383,7 @@ module Creole
         when /\A([ \t]*\S+.*?)$(\r?\n)?/
           start_paragraph
           parse_inline($1)
+          @out << '<br/>' if @keep_line_break && @stack.last != 'li'
         else
           raise "Parse error at #{str[0,30].inspect}"
         end
