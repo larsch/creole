@@ -106,7 +106,7 @@ module Creole
     end
 
     def end_tag
-      @out.sub!(/<br\/?>\z/, '') if @keep_line_break
+      @out.sub!(/<br\/?>\z/, '') if @keep_line_break && @stack.last == 'p'
       @out << '</' << @stack.pop << '>'
     end
 
@@ -379,6 +379,7 @@ module Creole
           else
             start_paragraph
             parse_inline(line)
+            @out << '<br/>' if @keep_line_break
           end
         when /\A([ \t]*\S+.*?)$(\r?\n)?/
           start_paragraph

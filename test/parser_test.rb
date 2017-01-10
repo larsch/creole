@@ -680,6 +680,11 @@ describe Creole::Parser do
     tc "<p>This <em>is<br/>italic</em></p>",
        "This //is\nitalic//", :keep_line_break => true
 
+    tc "<p><strong>This</strong><br/>is<br/><strong>bold<br/></strong></p>",
+       "**This**\nis\n**bold\n**", :keep_line_break => true
+    tc "<p><em>This</em><br/>is<br/><em>italic<br/></em></p>",
+       "//This//\nis\n//italic\n//", :keep_line_break => true
+
     tc "<ul><li>The quick brown fox jumps over lazy dog.</li></ul>",
        "* The quick brown\nfox jumps over lazy dog.", :keep_line_break => true
     tc "<ol><li>The quick brown fox jumps over lazy dog.</li></ol>",
