@@ -1,7 +1,7 @@
 = Creole
 
 Creole is a Creole-to-HTML converter for Creole, the lightweight markup
-language (http://wikicreole.org/). Github uses this converter to render *.creole files.
+language ( http://wikicreole.org/ ). Github uses this converter to render *.creole files.
 
 Project page on github:
 
